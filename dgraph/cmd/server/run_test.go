@@ -110,7 +110,7 @@ func prepare() (dir1, dir2 string, rerr error) {
 	edgraph.Config.PostingDir = dir1
 	edgraph.Config.PostingTables = "loadtoram"
 	edgraph.Config.WALDir = dir2
-	edgraph.NewServerState()
+	edgraph.State = edgraph.NewServerState()
 
 	posting.Init(edgraph.State.Pstore)
 	schema.Init(edgraph.State.Pstore)
