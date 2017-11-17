@@ -767,6 +767,8 @@ func (l *List) syncIfDirty(delFromCache bool) (committed bool, err error) {
 		}
 	}
 
+	// Copy this over because minTs can change by the time callback returns.
+	minTs = l.minTs
 	retries := 0
 	var f func(error)
 	f = func(err error) {
@@ -778,7 +780,7 @@ func (l *List) syncIfDirty(delFromCache bool) (committed bool, err error) {
 			}
 			// Error from badger should be temporary, so we can retry.
 			retries += 1
-			doAsyncWrite(l.minTs, l.key, data, meta, f)
+			doAsyncWrite(minTs, l.key, data, meta, f)
 			return
 		}
 		x.BytesWrite.Add(int64(len(data)))
@@ -787,10 +789,10 @@ func (l *List) syncIfDirty(delFromCache bool) (committed bool, err error) {
 			x.AssertTrue(atomic.LoadInt32(&l.deleteMe) == 1)
 			lcache.delete(l.key)
 		}
-		pstore.PurgeVersionsBelow(l.key, l.minTs)
+		pstore.PurgeVersionsBelow(l.key, minTs)
 	}
 
-	doAsyncWrite(l.minTs, l.key, data, meta, f)
+	doAsyncWrite(minTs, l.key, data, meta, f)
 	return true, nil
 }
 
