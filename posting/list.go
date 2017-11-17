@@ -524,13 +524,14 @@ func (l *List) Conflicts(readTs uint64) []uint64 {
 
 func (l *List) inSnapshot(mpost *protos.Posting, readTs, deleteTs uint64) bool {
 	l.AssertRLock()
-	if mpost.CommitTs == 0 {
-		mpost.CommitTs = Oracle().CommitTs(mpost.StartTs)
+
+	if atomic.LoadUint64(&mpost.CommitTs) == 0 {
+		atomic.StoreUint64(&mpost.CommitTs, Oracle().CommitTs(mpost.StartTs))
 	}
-	if mpost.CommitTs == 0 {
+	if atomic.LoadUint64(&mpost.CommitTs) == 0 {
 		return mpost.StartTs == readTs
 	}
-	return mpost.CommitTs <= readTs && mpost.CommitTs >= deleteTs
+	return atomic.LoadUint64(&mpost.CommitTs) <= readTs && atomic.LoadUint64(&mpost.CommitTs) >= deleteTs
 }
 
 func (l *List) iterate(readTs uint64, afterUid uint64, f func(obj *protos.Posting) bool) error {
